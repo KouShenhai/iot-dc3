@@ -19,35 +19,50 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.pnoker</groupId>
-        <artifactId>dc3-driver</artifactId>
+        <artifactId>iot-dc3</artifactId>
         <version>2022.1.1</version>
     </parent>
 
-    <artifactId>dc3-driver-edge-gateway</artifactId>
-    <packaging>jar</packaging>
+    <artifactId>dc3-transfer</artifactId>
+    <packaging>pom</packaging>
 
-    <description>IOT DC3 平台 边缘网关 驱动，该驱动是一个网关类型的驱动。</description>
+    <description>IOT DC3 平台数据交换服务集合。</description>
+
+    <modules>
+        <module>dc3-transfer-rtmp</module>
+    </modules>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
 
     <dependencies>
 
-        <!-- Spring Integration Stream -->
+        <!-- Undertow Web 容器 -->
         <dependency>
-            <groupId>org.springframework.integration</groupId>
-            <artifactId>spring-integration-stream</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
-        <!-- Spring Integration Mqtt -->
         <dependency>
-            <groupId>org.springframework.integration</groupId>
-            <artifactId>spring-integration-mqtt</artifactId>
-        </dependency>
-
-        <!-- Tls Cert 相关 -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk16</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-undertow</artifactId>
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
