@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,28 +16,34 @@
 
 package io.github.pnoker.center.data.entity.vo;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 /**
- * Point Value Read VO
+ * PointValueRead VO
  *
  * @author pnoker
  * @since 2022.1.0
  */
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(title = "PointValueRead", description = "位号读")
 public class PointValueReadVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @NotBlank(message = "Driver id can't be empty")
-    private String deviceId;
+    @Schema(description = "设备ID")
+    @NotNull(message = "设备ID不能为空")
+    private Long deviceId;
 
-    @NotBlank(message = "Point id can't be empty")
-    private String pointId;
+    @Schema(description = "位号ID")
+    @NotNull(message = "位号ID不能为空")
+    private Long pointId;
 }

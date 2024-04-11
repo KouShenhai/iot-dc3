@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,9 +91,6 @@ public class NumericLocator extends BaseLocator<Number> {
             throw new IllegalDataTypeException("Invalid data type");
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getDataType() {
         return dataType;
@@ -117,18 +114,12 @@ public class NumericLocator extends BaseLocator<Number> {
         this.roundingMode = roundingMode;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String toString() {
         return "NumericLocator(slaveId=" + getSlaveId() + ", range=" + range + ", offset=" + offset + ", dataType="
                 + dataType + ")";
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int getRegisterCount() {
         switch (dataType) {
@@ -170,9 +161,6 @@ public class NumericLocator extends BaseLocator<Number> {
         throw new RuntimeException("Unsupported data type: " + dataType);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Number bytesToValueRealOffset(byte[] data, int offset) {
         offset *= 2;
@@ -345,9 +333,6 @@ public class NumericLocator extends BaseLocator<Number> {
         return n;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public short[] valueToShorts(Number value) {
         // 2 bytes

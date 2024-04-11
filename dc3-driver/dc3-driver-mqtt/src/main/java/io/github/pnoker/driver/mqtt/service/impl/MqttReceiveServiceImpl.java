@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,16 @@
 
 package io.github.pnoker.driver.mqtt.service.impl;
 
-import io.github.pnoker.common.entity.point.PointValue;
-import io.github.pnoker.common.mqtt.entity.MqttMessage;
+import io.github.pnoker.common.driver.service.DriverSenderService;
+import io.github.pnoker.common.entity.MqttMessage;
+import io.github.pnoker.common.entity.dto.PointValueDTO;
 import io.github.pnoker.common.mqtt.service.MqttReceiveService;
 import io.github.pnoker.common.utils.JsonUtil;
-import io.github.pnoker.driver.sdk.service.DriverSenderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,8 +44,8 @@ public class MqttReceiveServiceImpl implements MqttReceiveService {
     public void receiveValue(MqttMessage mqttMessage) {
         // do something to process your mqtt messages
         log.info(JsonUtil.toPrettyJsonString(mqttMessage));
-        PointValue pointValue = JsonUtil.parseObject(mqttMessage.getPayload(), PointValue.class);
-        pointValue.setOriginTime(new Date());
+        PointValueDTO pointValue = JsonUtil.parseObject(mqttMessage.getPayload(), PointValueDTO.class);
+        pointValue.setOriginTime(LocalDateTime.now());
         driverSenderService.pointValueSender(pointValue);
     }
 
@@ -53,10 +53,10 @@ public class MqttReceiveServiceImpl implements MqttReceiveService {
     public void receiveValues(List<MqttMessage> mqttMessageList) {
         // do something to process your mqtt messages
         log.info(JsonUtil.toPrettyJsonString(mqttMessageList));
-        List<PointValue> pointValues = mqttMessageList.stream()
+        List<PointValueDTO> pointValues = mqttMessageList.stream()
                 .map(mqttMessage -> {
-                    PointValue pointValue = JsonUtil.parseObject(mqttMessage.getPayload(), PointValue.class);
-                    pointValue.setOriginTime(new Date());
+                    PointValueDTO pointValue = JsonUtil.parseObject(mqttMessage.getPayload(), PointValueDTO.class);
+                    pointValue.setOriginTime(LocalDateTime.now());
                     return pointValue;
                 }).collect(Collectors.toList());
         driverSenderService.pointValueSender(pointValues);

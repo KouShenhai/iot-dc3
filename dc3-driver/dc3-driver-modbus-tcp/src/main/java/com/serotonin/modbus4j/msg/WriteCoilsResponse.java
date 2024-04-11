@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,6 @@ public class WriteCoilsResponse extends ModbusResponse {
     private int startOffset;
     private int numberOfBits;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public byte getFunctionCode() {
         return FunctionCode.WRITE_COILS;
@@ -48,18 +45,12 @@ public class WriteCoilsResponse extends ModbusResponse {
         this.numberOfBits = numberOfBits;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void writeResponse(ByteQueue queue) {
         ModbusUtils.pushShort(queue, startOffset);
         ModbusUtils.pushShort(queue, numberOfBits);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void readResponse(ByteQueue queue) {
         startOffset = ModbusUtils.popUnsignedShort(queue);

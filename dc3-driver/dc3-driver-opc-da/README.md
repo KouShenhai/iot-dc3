@@ -18,7 +18,7 @@
 
 ## 配置项
 
-> src/main/resources/application.yml
+> src/main/resourceBOS/application.yml
 
 ### OpcDa Server 连接配置
 
@@ -29,7 +29,7 @@
 
 ### OpcDa Point 配置
 
-- group ：item group
+- groupBO ：item groupBO
 - tag ：item name
 
 ### 定时采集配置

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 package io.github.pnoker.driver.service.impl;
 
 import com.mchange.v2.lang.StringUtils;
-import io.github.pnoker.common.entity.driver.AttributeInfo;
-import io.github.pnoker.common.model.Device;
-import io.github.pnoker.common.model.Point;
-import io.github.pnoker.driver.sdk.service.DriverCustomService;
+import io.github.pnoker.common.driver.service.DriverCustomService;
+import io.github.pnoker.common.entity.dto.AttributeConfigDTO;
+import io.github.pnoker.common.entity.dto.DeviceDTO;
+import io.github.pnoker.common.entity.dto.PointDTO;
 import io.github.pnoker.driver.server.Lwm2mServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.util.Map;
 
-import static io.github.pnoker.driver.sdk.utils.DriverUtil.attribute;
+import static io.github.pnoker.common.utils.DriverUtil.attribute;
 
 
 /**
@@ -78,16 +78,15 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @param device     Device
      * @param point      Point
      * @return
-     * @see Lwm2mServer#getObservationListener() 订阅资源
      */
     @Override
-    public String read(Map<String, AttributeInfo> driverInfo, Map<String, AttributeInfo> pointInfo, Device device, Point point) {
+    public String read(Map<String, AttributeConfigDTO> driverInfo, Map<String, AttributeConfigDTO> pointInfo, DeviceDTO device, PointDTO point) {
         /*
         !!! 提示：此处逻辑仅供参考，请务必结合实际应用场景。!!!
 
         可以主动读取,也可以订阅资源
          */
-        return lwm2mServer.readValueByPath(device.getId(), attribute(pointInfo, "messageUp"));
+        return lwm2mServer.readValueByPath(String.valueOf(device.getId()), attribute(pointInfo, "messageUp"));
     }
 
     /**
@@ -102,14 +101,14 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @return
      */
     @Override
-    public Boolean write(Map<String, AttributeInfo> driverInfo, Map<String, AttributeInfo> pointInfo, Device device, AttributeInfo value) {
+    public Boolean write(Map<String, AttributeConfigDTO> driverInfo, Map<String, AttributeConfigDTO> pointInfo, DeviceDTO device, AttributeConfigDTO value) {
         /*
         !!! 提示：此处逻辑仅供参考，请务必结合实际应用场景。!!!
          */
         if (StringUtils.nonEmptyString(attribute(pointInfo, "execDown"))) {
             //执行函数
-            return lwm2mServer.execute(device.getId(), attribute(pointInfo, "execDown"), value.getValue());
+            return lwm2mServer.execute(String.valueOf(device.getId()), attribute(pointInfo, "execDown"), value.getValue());
         }
-        return lwm2mServer.writeValueByPath(device.getId(), attribute(pointInfo, "messageDown"), value.getValue(), false);
+        return lwm2mServer.writeValueByPath(String.valueOf(device.getId()), attribute(pointInfo, "messageDown"), value.getValue(), false);
     }
 }

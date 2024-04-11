@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,14 @@ package io.github.pnoker.driver.service.netty;
 
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.ObjectUtil;
-import io.github.pnoker.common.entity.driver.AttributeInfo;
-import io.github.pnoker.common.entity.point.PointValue;
-import io.github.pnoker.common.model.Device;
-import io.github.pnoker.common.model.Point;
-import io.github.pnoker.driver.sdk.DriverContext;
-import io.github.pnoker.driver.sdk.service.DriverSenderService;
-import io.github.pnoker.driver.sdk.utils.ConvertUtil;
-import io.github.pnoker.driver.sdk.utils.DriverUtil;
+import io.github.pnoker.common.driver.context.DriverContext;
+import io.github.pnoker.common.driver.service.DriverSenderService;
+import io.github.pnoker.common.entity.dto.AttributeConfigDTO;
+import io.github.pnoker.common.entity.dto.DeviceDTO;
+import io.github.pnoker.common.entity.dto.PointDTO;
+import io.github.pnoker.common.entity.dto.PointValueDTO;
+import io.github.pnoker.common.utils.ConvertUtil;
+import io.github.pnoker.common.utils.DriverUtil;
 import io.github.pnoker.driver.service.netty.tcp.NettyTcpServer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -51,10 +51,10 @@ public class NettyServerHandler {
     @Resource
     private DriverContext driverContext;
 
-    public String getDeviceIdByName(String name) {
-        List<Device> values = new ArrayList<>(driverContext.getDriverMetadata().getDeviceMap().values());
+    public Long getDeviceIdByName(String name) {
+        List<DeviceDTO> values = new ArrayList<>(driverContext.getDriverMetadataDTO().getDeviceMap().values());
         for (int i = 0; i < values.size(); i++) {
-            Device device = values.get(i);
+            DeviceDTO device = values.get(i);
             if (device.getDeviceName().equals(name)) {
                 return device.getId();
             }
@@ -65,51 +65,51 @@ public class NettyServerHandler {
     public void read(ChannelHandlerContext context, ByteBuf byteBuf) {
         log.info("{}->{}", context.channel().remoteAddress(), ByteBufUtil.hexDump(byteBuf));
         String deviceName = byteBuf.toString(0, 22, CharsetUtil.CHARSET_ISO_8859_1);
-        String deviceId = getDeviceIdByName(deviceName);
+        Long deviceId = getDeviceIdByName(deviceName);
         String hexKey = ByteBufUtil.hexDump(byteBuf, 22, 1);
 
         //TODO 简单的例子，用于存储channel，然后配合write接口实现向下发送数据
         NettyTcpServer.deviceChannelMap.put(deviceId, context.channel());
 
-        List<PointValue> pointValues = new ArrayList<>(16);
-        Map<String, Map<String, AttributeInfo>> pointInfoMap = driverContext.getDriverMetadata().getPointInfoMap().get(deviceId);
-        for (String pointId : pointInfoMap.keySet()) {
-            Point point = driverContext.getPointByDeviceIdAndPointId(deviceId, pointId);
-            Map<String, AttributeInfo> infoMap = pointInfoMap.get(pointId);
+        List<PointValueDTO> pointValues = new ArrayList<>(16);
+        Map<Long, Map<String, AttributeConfigDTO>> pointInfoMap = driverContext.getDriverMetadataDTO().getPointInfoMap().get(deviceId);
+        for (Long pointId : pointInfoMap.keySet()) {
+            PointDTO point = driverContext.getPointByDeviceIdAndPointId(deviceId, pointId);
+            Map<String, AttributeConfigDTO> infoMap = pointInfoMap.get(pointId);
             int start = DriverUtil.value(infoMap.get("start").getType().getCode(), infoMap.get("start").getValue());
             int end = DriverUtil.value(infoMap.get("end").getType().getCode(), infoMap.get("end").getValue());
 
             if (infoMap.get("key").getValue().equals(hexKey)) {
-                PointValue pointValue = null;
+                PointValueDTO pointValue = null;
                 switch (point.getPointName()) {
                     case "海拔":
                         float altitude = byteBuf.getFloat(start);
-                        pointValue = new PointValue(deviceId, pointId, String.valueOf(altitude),
+                        pointValue = new PointValueDTO(deviceId, pointId, String.valueOf(altitude),
                                 ConvertUtil.convertValue(point, String.valueOf(altitude)));
                         break;
                     case "速度":
                         double speed = byteBuf.getDouble(start);
-                        pointValue = new PointValue(deviceId, pointId, String.valueOf(speed),
+                        pointValue = new PointValueDTO(deviceId, pointId, String.valueOf(speed),
                                 ConvertUtil.convertValue(point, String.valueOf(speed)));
                         break;
                     case "液位":
                         long level = byteBuf.getLong(start);
-                        pointValue = new PointValue(deviceId, pointId, String.valueOf(level),
+                        pointValue = new PointValueDTO(deviceId, pointId, String.valueOf(level),
                                 ConvertUtil.convertValue(point, String.valueOf(level)));
                         break;
                     case "方向":
                         int direction = byteBuf.getInt(start);
-                        pointValue = new PointValue(deviceId, pointId, String.valueOf(direction),
+                        pointValue = new PointValueDTO(deviceId, pointId, String.valueOf(direction),
                                 ConvertUtil.convertValue(point, String.valueOf(direction)));
                         break;
                     case "锁定":
                         boolean lock = byteBuf.getBoolean(start);
-                        pointValue = new PointValue(deviceId, pointId, String.valueOf(lock),
+                        pointValue = new PointValueDTO(deviceId, pointId, String.valueOf(lock),
                                 ConvertUtil.convertValue(point, String.valueOf(lock)));
                         break;
                     case "经纬":
                         String lalo = byteBuf.toString(start, end, CharsetUtil.CHARSET_ISO_8859_1).trim();
-                        pointValue = new PointValue(deviceId, pointId, lalo,
+                        pointValue = new PointValueDTO(deviceId, pointId, lalo,
                                 ConvertUtil.convertValue(point, lalo));
                         break;
                     default:

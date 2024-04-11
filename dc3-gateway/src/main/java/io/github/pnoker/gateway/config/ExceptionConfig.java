@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,8 @@
 
 package io.github.pnoker.gateway.config;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.pnoker.common.entity.R;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.core.annotation.Order;
@@ -33,6 +31,8 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.handler.ResponseStatusExceptionHandler;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Resource;
+
 /**
  * 网关异常通用处理器，只作用在webflux 环境下 , 优先级低于 {@link ResponseStatusExceptionHandler} 执行
  *
@@ -42,10 +42,10 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Order(-1)
 @Component
-@RequiredArgsConstructor
 public class ExceptionConfig implements ErrorWebExceptionHandler {
 
-    private final ObjectMapper objectMapper;
+    @Resource
+    private ObjectMapper objectMapper;
 
     @NonNull
     @Override
@@ -65,7 +65,7 @@ public class ExceptionConfig implements ErrorWebExceptionHandler {
             DataBufferFactory bufferFactory = response.bufferFactory();
             try {
                 return bufferFactory.wrap(objectMapper.writeValueAsBytes(R.fail(throwable.getMessage())));
-            } catch (JsonProcessingException e) {
+            } catch (Exception e) {
                 log.error(e.getMessage(), e);
                 return bufferFactory.wrap(new byte[0]);
             }

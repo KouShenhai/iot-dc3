@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,19 @@ package io.github.pnoker.center.auth.controller;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.pnoker.center.auth.entity.query.TenantPageQuery;
+import io.github.pnoker.center.auth.entity.bo.TenantBO;
+import io.github.pnoker.center.auth.entity.builder.TenantBuilder;
+import io.github.pnoker.center.auth.entity.query.TenantQuery;
+import io.github.pnoker.center.auth.entity.vo.TenantVO;
 import io.github.pnoker.center.auth.service.TenantService;
-import io.github.pnoker.common.constant.service.AuthServiceConstant;
+import io.github.pnoker.common.base.BaseController;
+import io.github.pnoker.common.constant.service.AuthConstant;
 import io.github.pnoker.common.entity.R;
 import io.github.pnoker.common.enums.ResponseEnum;
-import io.github.pnoker.common.model.Tenant;
-import io.github.pnoker.common.valid.Insert;
+import io.github.pnoker.common.valid.Add;
 import io.github.pnoker.common.valid.Update;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -41,8 +46,12 @@ import javax.validation.constraints.NotNull;
  */
 @Slf4j
 @RestController
-@RequestMapping(AuthServiceConstant.TENANT_URL_PREFIX)
-public class TenantController {
+@Tag(name = "接口-租户")
+@RequestMapping(AuthConstant.TENANT_URL_PREFIX)
+public class TenantController implements BaseController {
+
+    @Resource
+    private TenantBuilder tenantBuilder;
 
     @Resource
     private TenantService tenantService;
@@ -50,15 +59,18 @@ public class TenantController {
     /**
      * 新增租户
      *
-     * @param tenant 租户
-     * @return {@link Tenant}
+     * @param entityVO {@link TenantVO}
+     * @return R of String
      */
     @PostMapping("/add")
-    public R<String> add(@Validated(Insert.class) @RequestBody Tenant tenant) {
+    @Operation(summary = "新增-租户")
+    public R<String> add(@Validated(Add.class) @RequestBody TenantVO entityVO) {
         try {
-            tenantService.add(tenant);
-            return R.ok();
+            TenantBO entityBO = tenantBuilder.buildBOByVO(entityVO);
+            tenantService.save(entityBO);
+            return R.ok(ResponseEnum.ADD_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -66,36 +78,38 @@ public class TenantController {
     /**
      * 根据 ID 删除租户
      *
-     * @param id 租户ID
-     * @return 是否删除
+     * @param id ID
+     * @return R of String
      */
     @PostMapping("/delete/{id}")
-    public R<String> delete(@NotNull @PathVariable(value = "id") String id) {
+    public R<String> delete(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            tenantService.delete(id);
-            return R.ok();
+            tenantService.remove(id);
+            return R.ok(ResponseEnum.DELETE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
 
     /**
-     * 根据 ID 修改租户
+     * 根据 ID 更新租户
      * <ol>
-     * <li>支持修改: Enable</li>
-     * <li>不支持修改: Name</li>
+     * <li>支持更新: Enable</li>
+     * <li>不支持更新: Name</li>
      * </ol>
      *
-     * @param tenant Tenant
-     * @return {@link Tenant}
+     * @param entityVO {@link TenantVO}
+     * @return R of String
      */
     @PostMapping("/update")
-    public R<String> update(@Validated(Update.class) @RequestBody Tenant tenant) {
+    public R<String> update(@Validated(Update.class) @RequestBody TenantVO entityVO) {
         try {
-            tenant.setTenantName(null);
-            tenantService.update(tenant);
-            return R.ok();
+            TenantBO entityBO = tenantBuilder.buildBOByVO(entityVO);
+            tenantService.update(entityBO);
+            return R.ok(ResponseEnum.UPDATE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -103,61 +117,60 @@ public class TenantController {
     /**
      * 根据 ID 查询租户
      *
-     * @param id 租户ID
-     * @return {@link Tenant}
+     * @param id ID
+     * @return TenantVO {@link TenantVO}
      */
     @GetMapping("/id/{id}")
-    public R<Tenant> selectById(@NotNull @PathVariable(value = "id") String id) {
+    public R<TenantVO> selectById(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            Tenant select = tenantService.selectById(id);
-            if (ObjectUtil.isNotNull(select)) {
-                return R.ok(select);
-            }
+            TenantBO entityBO = tenantService.selectById(id);
+            TenantVO entityVO = tenantBuilder.buildVOByBO(entityBO);
+            return R.ok(entityVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail(ResponseEnum.NO_RESOURCE.getMessage());
     }
 
     /**
      * 根据 Code 查询租户
      *
      * @param code 租户Code
-     * @return {@link Tenant}
+     * @return {@link TenantBO}
      */
     @GetMapping("/code/{code}")
-    public R<Tenant> selectByCode(@NotNull @PathVariable(value = "code") String code) {
+    public R<TenantBO> selectByCode(@NotNull @PathVariable(value = "code") String code) {
         try {
-            Tenant select = tenantService.selectByCode(code);
+            TenantBO select = tenantService.selectByCode(code);
             if (ObjectUtil.isNotNull(select)) {
                 return R.ok(select);
             }
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail(ResponseEnum.NO_RESOURCE.getMessage());
+        return R.fail(ResponseEnum.NO_RESOURCE.getText());
     }
 
     /**
-     * 模糊分页查询租户
+     * 分页查询租户
      *
-     * @param tenantPageQuery 租户和分页参数
-     * @return 带分页的 {@link Tenant}
+     * @param entityQuery 租户和分页参数
+     * @return 带分页的 {@link TenantBO}
      */
     @PostMapping("/list")
-    public R<Page<Tenant>> list(@RequestBody(required = false) TenantPageQuery tenantPageQuery) {
+    public R<Page<TenantVO>> list(@RequestBody(required = false) TenantQuery entityQuery) {
         try {
-            if (ObjectUtil.isEmpty(tenantPageQuery)) {
-                tenantPageQuery = new TenantPageQuery();
+            if (ObjectUtil.isEmpty(entityQuery)) {
+                entityQuery = new TenantQuery();
             }
-            Page<Tenant> page = tenantService.list(tenantPageQuery);
-            if (ObjectUtil.isNotNull(page)) {
-                return R.ok(page);
-            }
+            Page<TenantBO> entityPageBO = tenantService.selectByPage(entityQuery);
+            Page<TenantVO> entityPageVO = tenantBuilder.buildVOPageByBOPage(entityPageBO);
+            return R.ok(entityPageVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail(ResponseEnum.NO_RESOURCE.getMessage());
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,19 @@
 package io.github.pnoker.driver.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
-import io.github.pnoker.common.entity.driver.AttributeInfo;
+import io.github.pnoker.common.driver.context.DriverContext;
+import io.github.pnoker.common.driver.service.DriverCustomService;
+import io.github.pnoker.common.driver.service.DriverSenderService;
+import io.github.pnoker.common.entity.dto.AttributeConfigDTO;
+import io.github.pnoker.common.entity.dto.DeviceDTO;
+import io.github.pnoker.common.entity.dto.PointDTO;
 import io.github.pnoker.common.enums.DeviceStatusEnum;
 import io.github.pnoker.common.enums.PointTypeFlagEnum;
 import io.github.pnoker.common.exception.ConnectorException;
 import io.github.pnoker.common.exception.ReadPointException;
 import io.github.pnoker.common.exception.WritePointException;
-import io.github.pnoker.common.model.Device;
-import io.github.pnoker.common.model.Point;
+import io.github.pnoker.common.utils.DriverUtil;
 import io.github.pnoker.common.utils.JsonUtil;
-import io.github.pnoker.driver.sdk.DriverContext;
-import io.github.pnoker.driver.sdk.service.DriverCustomService;
-import io.github.pnoker.driver.sdk.service.DriverSenderService;
-import io.github.pnoker.driver.sdk.utils.DriverUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.jinterop.dcom.common.JIException;
 import org.jinterop.dcom.core.JIVariant;
@@ -44,8 +44,9 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import static io.github.pnoker.driver.sdk.utils.DriverUtil.attribute;
+import static io.github.pnoker.common.utils.DriverUtil.attribute;
 
 /**
  * @author pnoker
@@ -63,7 +64,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
     /**
      * Opc Da Server Map
      */
-    private Map<String, Server> connectMap;
+    private Map<Long, Server> connectMap;
 
     @Override
     public void initial() {
@@ -91,11 +92,11 @@ public class DriverCustomServiceImpl implements DriverCustomService {
         - MAINTAIN:维护
         - FAULT:故障
          */
-        driverContext.getDriverMetadata().getDeviceMap().keySet().forEach(id -> driverSenderService.deviceStatusSender(id, DeviceStatusEnum.ONLINE));
+        driverContext.getDriverMetadataDTO().getDeviceMap().keySet().forEach(id -> driverSenderService.deviceStatusSender(id, DeviceStatusEnum.ONLINE, 25, TimeUnit.SECONDS));
     }
 
     @Override
-    public String read(Map<String, AttributeInfo> driverInfo, Map<String, AttributeInfo> pointInfo, Device device, Point point) {
+    public String read(Map<String, AttributeConfigDTO> driverInfo, Map<String, AttributeConfigDTO> pointInfo, DeviceDTO device, PointDTO point) {
         /*
         !!! 提示：此处逻辑仅供参考，请务必结合实际应用场景。!!!
          */
@@ -104,7 +105,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
     }
 
     @Override
-    public Boolean write(Map<String, AttributeInfo> driverInfo, Map<String, AttributeInfo> pointInfo, Device device, AttributeInfo value) {
+    public Boolean write(Map<String, AttributeConfigDTO> driverInfo, Map<String, AttributeConfigDTO> pointInfo, DeviceDTO device, AttributeConfigDTO value) {
         /*
         !!! 提示：此处逻辑仅供参考，请务必结合实际应用场景。!!!
          */
@@ -119,7 +120,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @param driverInfo 驱动信息
      * @return Server
      */
-    private Server getConnector(String deviceId, Map<String, AttributeInfo> driverInfo) {
+    private Server getConnector(Long deviceId, Map<String, AttributeConfigDTO> driverInfo) {
         log.debug("Opc Da Server Connection Info {}", JsonUtil.toJsonString(driverInfo));
         Server server = connectMap.get(deviceId);
         if (ObjectUtil.isNull(server)) {
@@ -153,7 +154,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @throws DuplicateGroupException DuplicateGroupException
      * @throws AddFailedException      AddFailedException
      */
-    public Item getItem(Server server, Map<String, AttributeInfo> pointInfo) throws NotConnectedException, JIException, UnknownHostException, DuplicateGroupException, AddFailedException {
+    public Item getItem(Server server, Map<String, AttributeConfigDTO> pointInfo) throws NotConnectedException, JIException, UnknownHostException, DuplicateGroupException, AddFailedException {
         Group group;
         String groupName = attribute(pointInfo, "group");
         try {
@@ -171,7 +172,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @param pointInfo 位号信息
      * @return Item Value
      */
-    private String readValue(Server server, Map<String, AttributeInfo> pointInfo) {
+    private String readValue(Server server, Map<String, AttributeConfigDTO> pointInfo) {
         try {
             Item item = getItem(server, pointInfo);
             return readItem(item);
@@ -187,7 +188,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * 读取 Opc Da 位号值
      *
      * @param item Opc Item
-     * @return String Value
+     * @return R of String Value
      * @throws JIException JIException
      */
     public String readItem(Item item) throws JIException {
@@ -226,7 +227,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @param value     写入值
      * @return 是否写入
      */
-    private boolean writeValue(Server server, Map<String, AttributeInfo> pointInfo, AttributeInfo value) {
+    private boolean writeValue(Server server, Map<String, AttributeConfigDTO> pointInfo, AttributeConfigDTO value) {
         try {
             Item item = getItem(server, pointInfo);
             return writeItem(item, value);
@@ -245,7 +246,7 @@ public class DriverCustomServiceImpl implements DriverCustomService {
      * @param value 写入值
      * @throws JIException OpcDa JIException
      */
-    private boolean writeItem(Item item, AttributeInfo value) throws JIException {
+    private boolean writeItem(Item item, AttributeConfigDTO value) throws JIException {
         PointTypeFlagEnum valueType = PointTypeFlagEnum.ofCode(value.getType().getCode());
         if (ObjectUtil.isNull(valueType)) {
             throw new IllegalArgumentException("Unsupported type of " + value.getType());

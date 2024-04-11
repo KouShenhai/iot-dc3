@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package io.github.pnoker.driver.server;
 
 import io.github.pnoker.common.constant.common.DefaultConstant;
+import io.github.pnoker.common.driver.context.DriverContext;
+import io.github.pnoker.common.driver.service.DriverSenderService;
 import io.github.pnoker.common.enums.DeviceStatusEnum;
-import io.github.pnoker.driver.sdk.DriverContext;
-import io.github.pnoker.driver.sdk.service.DriverSenderService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.leshan.core.node.LwM2mNode;
 import org.eclipse.leshan.core.node.LwM2mSingleResource;
@@ -39,6 +39,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Lwm2mServer 已经实现coap方式接入 待实现coaps方式
@@ -91,7 +92,7 @@ public class Lwm2mServer {
         } catch (RuntimeException | InterruptedException e) {
             log.error("read exception :{},{},{}", clientEndpoint, path, e.getMessage());
         }
-        return DefaultConstant.DEFAULT_VALUE;
+        return DefaultConstant.DEFAULT_STRING_VALUE;
     }
 
 
@@ -221,7 +222,7 @@ public class Lwm2mServer {
             @Override
             public void registered(Registration registration, Registration previousReg, Collection<Observation> previousObservations) {
                 log.debug("new device {} registered", registration.getEndpoint());
-                driverSenderService.deviceStatusSender(registration.getEndpoint(), DeviceStatusEnum.ONLINE);
+                driverSenderService.deviceStatusSender(Long.valueOf(registration.getEndpoint()), DeviceStatusEnum.ONLINE, 25, TimeUnit.SECONDS);
             }
 
             /**
@@ -233,7 +234,7 @@ public class Lwm2mServer {
             @Override
             public void updated(RegistrationUpdate registrationUpdate, Registration updatedRegistration, Registration registration1) {
                 log.debug("device is still here:{}", updatedRegistration.getEndpoint());
-                driverSenderService.deviceStatusSender(updatedRegistration.getEndpoint(), DeviceStatusEnum.ONLINE);
+                driverSenderService.deviceStatusSender(Long.valueOf(updatedRegistration.getEndpoint()), DeviceStatusEnum.ONLINE, 25, TimeUnit.SECONDS);
             }
 
             /**
@@ -246,7 +247,7 @@ public class Lwm2mServer {
             @Override
             public void unregistered(Registration registration, Collection<Observation> observations, boolean expired, Registration newReg) {
                 log.debug("device left: " + registration.getEndpoint());
-                driverSenderService.deviceStatusSender(registration.getEndpoint(), DeviceStatusEnum.OFFLINE);
+                driverSenderService.deviceStatusSender(Long.valueOf(registration.getEndpoint()), DeviceStatusEnum.OFFLINE);
             }
 
 

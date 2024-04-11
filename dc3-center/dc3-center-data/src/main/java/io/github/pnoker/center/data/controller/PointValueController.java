@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ package io.github.pnoker.center.data.controller;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.pnoker.center.data.entity.vo.query.PointValuePageQuery;
-import io.github.pnoker.center.data.service.PointValueService;
-import io.github.pnoker.common.constant.service.DataServiceConstant;
+import io.github.pnoker.center.data.biz.PointValueService;
+import io.github.pnoker.common.base.BaseController;
+import io.github.pnoker.common.constant.service.DataConstant;
 import io.github.pnoker.common.entity.R;
-import io.github.pnoker.common.entity.point.PointValue;
+import io.github.pnoker.common.entity.bo.PointValueBO;
+import io.github.pnoker.common.entity.query.PointValueQuery;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,8 +41,9 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @RestController
-@RequestMapping(DataServiceConstant.VALUE_URL_PREFIX)
-public class PointValueController {
+@Tag(name = "接口-位号数据")
+@RequestMapping(DataConstant.VALUE_URL_PREFIX)
+public class PointValueController implements BaseController {
 
     @Resource
     private PointValueService pointValueService;
@@ -48,42 +51,45 @@ public class PointValueController {
     /**
      * 查询最新 PointValue 集合
      *
-     * @param pointValuePageQuery 位号值和分页参数
-     * @return 带分页的 {@link io.github.pnoker.common.entity.point.PointValue}
+     * @param pointValueQuery 位号值和分页参数
+     * @return 带分页的 {@link PointValueBO}
      */
     @PostMapping("/latest")
-    public R<Page<PointValue>> latest(@RequestBody PointValuePageQuery pointValuePageQuery) {
+    public R<Page<PointValueBO>> latest(@RequestBody PointValueQuery pointValueQuery) {
         try {
-            if (ObjectUtil.isEmpty(pointValuePageQuery)) {
-                pointValuePageQuery = new PointValuePageQuery();
+            if (ObjectUtil.isEmpty(pointValueQuery)) {
+                pointValueQuery = new PointValueQuery();
             }
-            Page<PointValue> page = pointValueService.latest(pointValuePageQuery);
+            pointValueQuery.setTenantId(getTenantId());
+            Page<PointValueBO> page = pointValueService.latest(pointValueQuery);
             if (ObjectUtil.isNotNull(page)) {
                 return R.ok(page);
             }
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
         return R.fail();
     }
 
     /**
-     * 模糊分页查询 PointValue
+     * 分页查询 PointValue
      *
-     * @param pointValuePageQuery 位号值和分页参数
-     * @return 带分页的 {@link io.github.pnoker.common.entity.point.PointValue}
+     * @param entityQuery 位号值和分页参数
+     * @return 带分页的 {@link PointValueBO}
      */
     @PostMapping("/list")
-    public R<Page<PointValue>> list(@RequestBody(required = false) PointValuePageQuery pointValuePageQuery) {
+    public R<Page<PointValueBO>> list(@RequestBody(required = false) PointValueQuery entityQuery) {
         try {
-            if (ObjectUtil.isEmpty(pointValuePageQuery)) {
-                pointValuePageQuery = new PointValuePageQuery();
+            if (ObjectUtil.isEmpty(entityQuery)) {
+                entityQuery = new PointValueQuery();
             }
-            Page<PointValue> page = pointValueService.list(pointValuePageQuery);
-            if (ObjectUtil.isNotNull(page)) {
-                return R.ok(page);
+            Page<PointValueBO> entityPageBO = pointValueService.page(entityQuery);
+            if (ObjectUtil.isNotNull(entityPageBO)) {
+                return R.ok(entityPageBO);
             }
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
         return R.fail();

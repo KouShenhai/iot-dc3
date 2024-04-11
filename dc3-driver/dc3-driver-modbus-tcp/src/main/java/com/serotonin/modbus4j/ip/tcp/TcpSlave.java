@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,9 +73,6 @@ public class TcpSlave extends ModbusSlaveSet {
         executorService = Executors.newCachedThreadPool();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void start() throws ModbusInitException {
         try {
@@ -95,9 +92,6 @@ public class TcpSlave extends ModbusSlaveSet {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void stop() {
         // Close the socket first to prevent new messages.

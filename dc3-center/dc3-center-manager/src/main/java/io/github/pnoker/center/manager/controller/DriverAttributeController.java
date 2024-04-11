@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,22 @@
 
 package io.github.pnoker.center.manager.controller;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.pnoker.center.manager.entity.query.DriverAttributePageQuery;
+import io.github.pnoker.center.manager.entity.bo.DriverAttributeBO;
+import io.github.pnoker.center.manager.entity.builder.DriverAttributeBuilder;
+import io.github.pnoker.center.manager.entity.query.DriverAttributeQuery;
+import io.github.pnoker.center.manager.entity.vo.DriverAttributeVO;
 import io.github.pnoker.center.manager.service.DriverAttributeService;
-import io.github.pnoker.common.constant.service.ManagerServiceConstant;
+import io.github.pnoker.common.base.BaseController;
+import io.github.pnoker.common.constant.service.ManagerConstant;
 import io.github.pnoker.common.entity.R;
+import io.github.pnoker.common.enums.ResponseEnum;
 import io.github.pnoker.common.exception.NotFoundException;
-import io.github.pnoker.common.model.DriverAttribute;
-import io.github.pnoker.common.valid.Insert;
+import io.github.pnoker.common.valid.Add;
 import io.github.pnoker.common.valid.Update;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -44,8 +49,12 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping(ManagerServiceConstant.DRIVER_ATTRIBUTE_URL_PREFIX)
-public class DriverAttributeController {
+@Tag(name = "接口-驱动属性")
+@RequestMapping(ManagerConstant.DRIVER_ATTRIBUTE_URL_PREFIX)
+public class DriverAttributeController implements BaseController {
+
+    @Resource
+    private DriverAttributeBuilder driverAttributeBuilder;
 
     @Resource
     private DriverAttributeService driverAttributeService;
@@ -53,15 +62,19 @@ public class DriverAttributeController {
     /**
      * 新增 DriverAttribute
      *
-     * @param driverAttribute DriverAttribute
-     * @return DriverAttribute
+     * @param entityVO {@link DriverAttributeVO}
+     * @return R of String
      */
     @PostMapping("/add")
-    public R<String> add(@Validated(Insert.class) @RequestBody DriverAttribute driverAttribute) {
+    @Operation(summary = "新增-驱动属性")
+    public R<String> add(@Validated(Add.class) @RequestBody DriverAttributeVO entityVO) {
         try {
-            driverAttributeService.add(driverAttribute);
-            return R.ok();
+            DriverAttributeBO entityBO = driverAttributeBuilder.buildBOByVO(entityVO);
+            entityBO.setTenantId(getTenantId());
+            driverAttributeService.save(entityBO);
+            return R.ok(ResponseEnum.ADD_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -69,31 +82,34 @@ public class DriverAttributeController {
     /**
      * 根据 ID 删除 DriverAttribute
      *
-     * @param id 驱动属性ID
-     * @return 是否删除
+     * @param id ID
+     * @return R of String
      */
     @PostMapping("/delete/{id}")
-    public R<String> delete(@NotNull @PathVariable(value = "id") String id) {
+    public R<String> delete(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            driverAttributeService.delete(id);
-            return R.ok();
+            driverAttributeService.remove(id);
+            return R.ok(ResponseEnum.DELETE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
 
     /**
-     * 修改 DriverAttribute
+     * 更新 DriverAttribute
      *
-     * @param driverAttribute DriverAttribute
-     * @return DriverAttribute
+     * @param entityVO {@link DriverAttributeVO}
+     * @return R of String
      */
     @PostMapping("/update")
-    public R<String> update(@Validated(Update.class) @RequestBody DriverAttribute driverAttribute) {
+    public R<String> update(@Validated(Update.class) @RequestBody DriverAttributeVO entityVO) {
         try {
-            driverAttributeService.update(driverAttribute);
-            return R.ok();
+            DriverAttributeBO entityBO = driverAttributeBuilder.buildBOByVO(entityVO);
+            driverAttributeService.update(entityBO);
+            return R.ok(ResponseEnum.UPDATE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -101,20 +117,19 @@ public class DriverAttributeController {
     /**
      * 根据 ID 查询 DriverAttribute
      *
-     * @param id 驱动属性ID
-     * @return DriverAttribute
+     * @param id ID
+     * @return DriverAttributeVO {@link DriverAttributeVO}
      */
     @GetMapping("/id/{id}")
-    public R<DriverAttribute> selectById(@NotNull @PathVariable(value = "id") String id) {
+    public R<DriverAttributeVO> selectById(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            DriverAttribute select = driverAttributeService.selectById(id);
-            if (ObjectUtil.isNotNull(select)) {
-                return R.ok(select);
-            }
+            DriverAttributeBO entityBO = driverAttributeService.selectById(id);
+            DriverAttributeVO entityVO = driverAttributeBuilder.buildVOByBO(entityBO);
+            return R.ok(entityVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
@@ -124,40 +139,39 @@ public class DriverAttributeController {
      * @return DriverAttribute
      */
     @GetMapping("/driver_id/{id}")
-    public R<List<DriverAttribute>> selectByDriverId(@NotNull @PathVariable(value = "id") String id) {
+    public R<List<DriverAttributeVO>> selectByDriverId(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            List<DriverAttribute> select = driverAttributeService.selectByDriverId(id, true);
-            if (CollUtil.isNotEmpty(select)) {
-                return R.ok(select);
-            }
+            List<DriverAttributeBO> entityBOS = driverAttributeService.selectByDriverId(id);
+            List<DriverAttributeVO> entityVO = driverAttributeBuilder.buildVOListByBOList(entityBOS);
+            return R.ok(entityVO);
         } catch (NotFoundException ne) {
             return R.ok(new ArrayList<>());
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
-     * 模糊分页查询 DriverAttribute
+     * 分页查询 DriverAttribute
      *
-     * @param driverAttributePageQuery DriverAttribute Dto
+     * @param entityQuery DriverAttribute Dto
      * @return Page Of DriverAttribute
      */
     @PostMapping("/list")
-    public R<Page<DriverAttribute>> list(@RequestBody(required = false) DriverAttributePageQuery driverAttributePageQuery) {
+    public R<Page<DriverAttributeVO>> list(@RequestBody(required = false) DriverAttributeQuery entityQuery) {
         try {
-            if (ObjectUtil.isEmpty(driverAttributePageQuery)) {
-                driverAttributePageQuery = new DriverAttributePageQuery();
+            if (ObjectUtil.isEmpty(entityQuery)) {
+                entityQuery = new DriverAttributeQuery();
             }
-            Page<DriverAttribute> page = driverAttributeService.list(driverAttributePageQuery);
-            if (ObjectUtil.isNotNull(page)) {
-                return R.ok(page);
-            }
+            entityQuery.setTenantId(getTenantId());
+            Page<DriverAttributeBO> entityPageBO = driverAttributeService.selectByPage(entityQuery);
+            Page<DriverAttributeVO> entityPageVO = driverAttributeBuilder.buildVOPageByBOPage(entityPageBO);
+            return R.ok(entityPageVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
 }

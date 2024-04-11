@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,19 @@ package io.github.pnoker.center.manager.controller;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.pnoker.center.manager.entity.query.DriverAttributeConfigPageQuery;
+import io.github.pnoker.center.manager.entity.bo.DriverAttributeConfigBO;
+import io.github.pnoker.center.manager.entity.builder.DriverAttributeConfigBuilder;
+import io.github.pnoker.center.manager.entity.query.DriverAttributeConfigQuery;
+import io.github.pnoker.center.manager.entity.vo.DriverAttributeConfigVO;
 import io.github.pnoker.center.manager.service.DriverAttributeConfigService;
-import io.github.pnoker.common.constant.service.ManagerServiceConstant;
+import io.github.pnoker.common.base.BaseController;
+import io.github.pnoker.common.constant.service.ManagerConstant;
 import io.github.pnoker.common.entity.R;
-import io.github.pnoker.common.model.DriverAttributeConfig;
-import io.github.pnoker.common.valid.Insert;
+import io.github.pnoker.common.enums.ResponseEnum;
+import io.github.pnoker.common.valid.Add;
 import io.github.pnoker.common.valid.Update;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -41,8 +47,12 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping(ManagerServiceConstant.DRIVER_ATTRIBUTE_CONFIG_URL_PREFIX)
-public class DriverAttributeConfigController {
+@Tag(name = "接口-驱动属性配置")
+@RequestMapping(ManagerConstant.DRIVER_ATTRIBUTE_CONFIG_URL_PREFIX)
+public class DriverAttributeConfigController implements BaseController {
+
+    @Resource
+    private DriverAttributeConfigBuilder driverAttributeConfigBuilder;
 
     @Resource
     private DriverAttributeConfigService driverAttributeConfigService;
@@ -50,15 +60,19 @@ public class DriverAttributeConfigController {
     /**
      * 新增 DriverInfo
      *
-     * @param driverAttributeConfig DriverInfo
-     * @return DriverInfo
+     * @param entityVO {@link DriverAttributeConfigVO}
+     * @return R of String
      */
     @PostMapping("/add")
-    public R<String> add(@Validated(Insert.class) @RequestBody DriverAttributeConfig driverAttributeConfig) {
+    @Operation(summary = "新增-驱动属性配置")
+    public R<String> add(@Validated(Add.class) @RequestBody DriverAttributeConfigVO entityVO) {
         try {
-            driverAttributeConfigService.add(driverAttributeConfig);
-            return R.ok();
+            DriverAttributeConfigBO entityBO = driverAttributeConfigBuilder.buildBOByVO(entityVO);
+            entityBO.setTenantId(getTenantId());
+            driverAttributeConfigService.save(entityBO);
+            return R.ok(ResponseEnum.ADD_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -66,31 +80,34 @@ public class DriverAttributeConfigController {
     /**
      * 根据 ID 删除 DriverInfo
      *
-     * @param id 驱动信息ID
-     * @return 是否删除
+     * @param id ID
+     * @return R of String
      */
     @PostMapping("/delete/{id}")
-    public R<String> delete(@NotNull @PathVariable(value = "id") String id) {
+    public R<String> delete(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            driverAttributeConfigService.delete(id);
-            return R.ok();
+            driverAttributeConfigService.remove(id);
+            return R.ok(ResponseEnum.DELETE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
 
     /**
-     * 修改 DriverInfo
+     * 更新 DriverInfo
      *
-     * @param driverAttributeConfig DriverInfo
-     * @return DriverInfo
+     * @param entityVO {@link DriverAttributeConfigVO}
+     * @return R of String
      */
     @PostMapping("/update")
-    public R<String> update(@Validated(Update.class) @RequestBody DriverAttributeConfig driverAttributeConfig) {
+    public R<String> update(@Validated(Update.class) @RequestBody DriverAttributeConfigVO entityVO) {
         try {
-            driverAttributeConfigService.update(driverAttributeConfig);
-            return R.ok();
+            DriverAttributeConfigBO entityBO = driverAttributeConfigBuilder.buildBOByVO(entityVO);
+            driverAttributeConfigService.update(entityBO);
+            return R.ok(ResponseEnum.UPDATE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -98,20 +115,19 @@ public class DriverAttributeConfigController {
     /**
      * 根据 ID 查询 DriverInfo
      *
-     * @param id 驱动信息ID
-     * @return DriverInfo
+     * @param id ID
+     * @return DriverAttributeConfigVO {@link DriverAttributeConfigVO}
      */
     @GetMapping("/id/{id}")
-    public R<DriverAttributeConfig> selectById(@NotNull @PathVariable(value = "id") String id) {
+    public R<DriverAttributeConfigVO> selectById(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            DriverAttributeConfig select = driverAttributeConfigService.selectById(id);
-            if (ObjectUtil.isNotNull(select)) {
-                return R.ok(select);
-            }
+            DriverAttributeConfigBO entityBO = driverAttributeConfigService.selectById(id);
+            DriverAttributeConfigVO entityVO = driverAttributeConfigBuilder.buildVOByBO(entityBO);
+            return R.ok(entityVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
@@ -122,17 +138,16 @@ public class DriverAttributeConfigController {
      * @return DriverInfo
      */
     @GetMapping("/device_id/{deviceId}/attribute_id/{attributeId}")
-    public R<DriverAttributeConfig> selectByDeviceIdAndAttributeId(@NotNull @PathVariable(value = "deviceId") String deviceId,
-                                                                   @NotNull @PathVariable(value = "attributeId") String attributeId) {
+    public R<DriverAttributeConfigVO> selectByDeviceIdAndAttributeId(@NotNull @PathVariable(value = "deviceId") Long deviceId,
+                                                                     @NotNull @PathVariable(value = "attributeId") Long attributeId) {
         try {
-            DriverAttributeConfig select = driverAttributeConfigService.selectByDeviceIdAndAttributeId(deviceId, attributeId);
-            if (ObjectUtil.isNotNull(select)) {
-                return R.ok(select);
-            }
+            DriverAttributeConfigBO entityBO = driverAttributeConfigService.selectByAttributeIdAndDeviceId(deviceId, attributeId);
+            DriverAttributeConfigVO entityVO = driverAttributeConfigBuilder.buildVOByBO(entityBO);
+            return R.ok(entityVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
@@ -142,38 +157,37 @@ public class DriverAttributeConfigController {
      * @return DriverInfo Array
      */
     @GetMapping("/device_id/{deviceId}")
-    public R<List<DriverAttributeConfig>> selectByDeviceId(@NotNull @PathVariable(value = "deviceId") String deviceId) {
+    public R<List<DriverAttributeConfigVO>> selectByDeviceId(@NotNull @PathVariable(value = "deviceId") Long deviceId) {
         try {
-            List<DriverAttributeConfig> select = driverAttributeConfigService.selectByDeviceId(deviceId);
-            if (ObjectUtil.isNotNull(select)) {
-                return R.ok(select);
-            }
+            List<DriverAttributeConfigBO> entityBOS = driverAttributeConfigService.selectByDeviceId(deviceId);
+            List<DriverAttributeConfigVO> entityVOS = driverAttributeConfigBuilder.buildVOListByBOList(entityBOS);
+            return R.ok(entityVOS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
-     * 模糊分页查询 DriverInfo
+     * 分页查询 DriverInfo
      *
-     * @param driverInfoPageQuery DriverInfo Dto
+     * @param entityQuery DriverInfo Dto
      * @return Page Of DriverInfo
      */
     @PostMapping("/list")
-    public R<Page<DriverAttributeConfig>> list(@RequestBody(required = false) DriverAttributeConfigPageQuery driverInfoPageQuery) {
+    public R<Page<DriverAttributeConfigVO>> list(@RequestBody(required = false) DriverAttributeConfigQuery entityQuery) {
         try {
-            if (ObjectUtil.isEmpty(driverInfoPageQuery)) {
-                driverInfoPageQuery = new DriverAttributeConfigPageQuery();
+            if (ObjectUtil.isEmpty(entityQuery)) {
+                entityQuery = new DriverAttributeConfigQuery();
             }
-            Page<DriverAttributeConfig> page = driverAttributeConfigService.list(driverInfoPageQuery);
-            if (ObjectUtil.isNotNull(page)) {
-                return R.ok(page);
-            }
+            entityQuery.setTenantId(getTenantId());
+            Page<DriverAttributeConfigBO> entityPageBO = driverAttributeConfigService.selectByPage(entityQuery);
+            Page<DriverAttributeConfigVO> entityPageVO = driverAttributeConfigBuilder.buildVOPageByBOPage(entityPageBO);
+            return R.ok(entityPageVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
 }

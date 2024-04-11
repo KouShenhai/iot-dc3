@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,15 @@
 
 package io.github.pnoker.center.data.controller;
 
-import io.github.pnoker.center.data.entity.vo.query.DevicePageQuery;
-import io.github.pnoker.center.data.service.DeviceStatusService;
-import io.github.pnoker.common.constant.common.DefaultConstant;
-import io.github.pnoker.common.constant.common.RequestConstant;
-import io.github.pnoker.common.constant.service.DataServiceConstant;
+import io.github.pnoker.center.data.biz.DeviceStatusService;
+import io.github.pnoker.center.data.entity.bo.DeviceRunBO;
+import io.github.pnoker.center.data.entity.builder.DeviceDurationBuilder;
+import io.github.pnoker.center.data.entity.query.DeviceQuery;
+import io.github.pnoker.center.data.entity.vo.DeviceRunVO;
+import io.github.pnoker.common.base.BaseController;
+import io.github.pnoker.common.constant.service.DataConstant;
 import io.github.pnoker.common.entity.R;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,26 +40,31 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping(DataServiceConstant.DEVICE_STATUS_URL_PREFIX)
-public class DeviceStatusController {
+@Tag(name = "接口-设备状态")
+@RequestMapping(DataConstant.DEVICE_STATUS_URL_PREFIX)
+public class DeviceStatusController implements BaseController {
 
     @Resource
     private DeviceStatusService deviceStatusService;
+
+    @Resource
+    private DeviceDurationBuilder deviceDurationBuilder;
 
     /**
      * 查询 Device 服务状态
      * ONLINE, OFFLINE, MAINTAIN, FAULT
      *
-     * @param devicePageQuery Device Dto
+     * @param deviceQuery Device Dto
      * @return Map String:String
      */
     @PostMapping("/device")
-    public R<Map<String, String>> deviceStatus(@RequestBody(required = false) DevicePageQuery devicePageQuery, @RequestHeader(value = RequestConstant.Header.X_AUTH_TENANT_ID, defaultValue = DefaultConstant.DEFAULT_ID) String tenantId) {
+    public R<Map<Long, String>> deviceStatus(@RequestBody(required = false) DeviceQuery deviceQuery) {
         try {
-            devicePageQuery.setTenantId(tenantId);
-            Map<String, String> statuses = deviceStatusService.device(devicePageQuery);
+            deviceQuery.setTenantId(getTenantId());
+            Map<Long, String> statuses = deviceStatusService.device(deviceQuery);
             return R.ok(statuses);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -65,17 +73,18 @@ public class DeviceStatusController {
      * 根据 驱动ID 查询 Device 服务状态
      * ONLINE, OFFLINE, MAINTAIN, FAULT
      *
-     * @param driverId Driver ID
+     * @param driverId 驱动ID
      * @return Map String:String
      */
     @GetMapping("/device/driver_id/{driverId}")
-    public R<Map<String, String>> deviceStatusByDriverId(@NotNull @PathVariable(value = "driverId") String driverId) {
+    public R<Map<Long, String>> deviceStatusByDriverId(@NotNull @PathVariable(value = "driverId") Long driverId) {
         try {
-            DevicePageQuery devicePageQuery = new DevicePageQuery();
-            devicePageQuery.setDriverId(driverId);
-            Map<String, String> statuses = deviceStatusService.device(devicePageQuery);
+            DeviceQuery deviceQuery = new DeviceQuery();
+            deviceQuery.setDriverId(driverId);
+            Map<Long, String> statuses = deviceStatusService.device(deviceQuery);
             return R.ok(statuses);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -84,15 +93,52 @@ public class DeviceStatusController {
      * 根据 模板ID 查询 Device 服务状态
      * ONLINE, OFFLINE, MAINTAIN, FAULT
      *
-     * @param profileId Profile ID
+     * @param profileId 位号ID
      * @return Map String:String
      */
     @GetMapping("/device/profile_id/{profileId}")
-    public R<Map<String, String>> deviceStatusByProfileId(@NotNull @PathVariable(value = "profileId") String profileId) {
+    public R<Map<Long, String>> deviceStatusByProfileId(@NotNull @PathVariable(value = "profileId") Long profileId) {
         try {
-            Map<String, String> statuses = deviceStatusService.deviceByProfileId(profileId);
+            Map<Long, String> statuses = deviceStatusService.deviceByProfileId(profileId);
             return R.ok(statuses);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return R.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 查询 device 在线总时长
+     *
+     * @param deviceId
+     * @return
+     */
+    @GetMapping("/deviceOnline/{deviceId}")
+    public R<DeviceRunVO> selectOnlineByDriverId(@NotNull @PathVariable(value = "deviceId") Long deviceId) {
+        try {
+            DeviceRunBO duration = deviceStatusService.selectOnlineByDeviceId(deviceId);
+            DeviceRunVO result = deviceDurationBuilder.buildVOByBOList(duration);
+            return R.ok(result);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return R.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 查询 device 离线总时长
+     *
+     * @param deviceId
+     * @return
+     */
+    @GetMapping("/deviceOffline/{deviceId}")
+    public R<DeviceRunVO> selectOfflineByDriverId(@NotNull @PathVariable(value = "deviceId") Long deviceId) {
+        try {
+            DeviceRunBO duration = deviceStatusService.selectOfflineByDeviceId(deviceId);
+            DeviceRunVO result = deviceDurationBuilder.buildVOByBOList(duration);
+            return R.ok(result);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }

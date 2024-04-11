@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,17 +18,17 @@ package io.github.pnoker.center.auth.api;
 
 
 import cn.hutool.core.util.ObjectUtil;
-import io.github.pnoker.api.center.auth.IdQuery;
-import io.github.pnoker.api.center.auth.RUserDTO;
+import io.github.pnoker.api.center.auth.GrpcIdQuery;
+import io.github.pnoker.api.center.auth.GrpcRUserDTO;
+import io.github.pnoker.api.center.auth.GrpcUserDTO;
 import io.github.pnoker.api.center.auth.UserApiGrpc;
-import io.github.pnoker.api.center.auth.UserDTO;
-import io.github.pnoker.api.common.BaseDTO;
-import io.github.pnoker.api.common.EnableFlagDTOEnum;
-import io.github.pnoker.api.common.RDTO;
+import io.github.pnoker.api.common.GrpcBase;
+import io.github.pnoker.api.common.GrpcR;
+import io.github.pnoker.center.auth.entity.bo.UserBO;
 import io.github.pnoker.center.auth.service.UserService;
-import io.github.pnoker.common.utils.BuilderUtil;
 import io.github.pnoker.common.enums.ResponseEnum;
-import io.github.pnoker.common.model.User;
+import io.github.pnoker.common.utils.GrpcBuilderUtil;
+import io.github.pnoker.common.utils.JsonUtil;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -49,19 +49,19 @@ public class UserApi extends UserApiGrpc.UserApiImplBase {
     private UserService userService;
 
     @Override
-    public void selectById(IdQuery request, StreamObserver<RUserDTO> responseObserver) {
-        RUserDTO.Builder builder = RUserDTO.newBuilder();
-        RDTO.Builder rBuilder = RDTO.newBuilder();
-        User select = userService.selectById(request.getId());
+    public void selectById(GrpcIdQuery request, StreamObserver<GrpcRUserDTO> responseObserver) {
+        GrpcRUserDTO.Builder builder = GrpcRUserDTO.newBuilder();
+        GrpcR.Builder rBuilder = GrpcR.newBuilder();
+        UserBO select = userService.selectById(request.getId());
         if (ObjectUtil.isNull(select)) {
             rBuilder.setOk(false);
             rBuilder.setCode(ResponseEnum.NO_RESOURCE.getCode());
-            rBuilder.setMessage(ResponseEnum.NO_RESOURCE.getMessage());
+            rBuilder.setMessage(ResponseEnum.NO_RESOURCE.getText());
         } else {
             rBuilder.setOk(true);
             rBuilder.setCode(ResponseEnum.OK.getCode());
-            rBuilder.setMessage(ResponseEnum.OK.getMessage());
-            UserDTO user = buildDTOByDO(select);
+            rBuilder.setMessage(ResponseEnum.OK.getText());
+            GrpcUserDTO user = buildGrpcDTOByBO(select);
             builder.setData(user);
         }
 
@@ -74,19 +74,19 @@ public class UserApi extends UserApiGrpc.UserApiImplBase {
     /**
      * DO to DTO
      *
-     * @param entityDO User
+     * @param entityBO User
      * @return UserDTO
      */
-    private UserDTO buildDTOByDO(User entityDO) {
-        UserDTO.Builder builder = UserDTO.newBuilder();
-        BaseDTO baseDTO = BuilderUtil.buildBaseDTOByDO(entityDO);
+    private GrpcUserDTO buildGrpcDTOByBO(UserBO entityBO) {
+        GrpcUserDTO.Builder builder = GrpcUserDTO.newBuilder();
+        GrpcBase baseDTO = GrpcBuilderUtil.buildGrpcBaseByBO(entityBO);
         builder.setBase(baseDTO);
-        builder.setNickName(entityDO.getNickName());
-        builder.setUserName(entityDO.getUserName());
-        builder.setPhone(entityDO.getPhone());
-        builder.setEmail(entityDO.getEmail());
-        builder.setSocialExt(entityDO.getSocialExt());
-        builder.setIdentityExt(entityDO.getIdentityExt());
+        builder.setNickName(entityBO.getNickName());
+        builder.setUserName(entityBO.getUserName());
+        builder.setPhone(entityBO.getPhone());
+        builder.setEmail(entityBO.getEmail());
+        builder.setSocialExt(JsonUtil.toJsonString(entityBO.getSocialExt()));
+        builder.setIdentityExt(JsonUtil.toJsonString(entityBO.getIdentityExt()));
         return builder.build();
     }
 }

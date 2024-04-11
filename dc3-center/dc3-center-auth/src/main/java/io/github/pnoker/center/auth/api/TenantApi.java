@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,17 +18,16 @@ package io.github.pnoker.center.auth.api;
 
 
 import cn.hutool.core.util.ObjectUtil;
-import io.github.pnoker.api.center.auth.CodeQuery;
-import io.github.pnoker.api.center.auth.RTenantDTO;
+import io.github.pnoker.api.center.auth.GrpcCodeQuery;
+import io.github.pnoker.api.center.auth.GrpcRTenantDTO;
+import io.github.pnoker.api.center.auth.GrpcTenantDTO;
 import io.github.pnoker.api.center.auth.TenantApiGrpc;
-import io.github.pnoker.api.center.auth.TenantDTO;
-import io.github.pnoker.api.common.BaseDTO;
-import io.github.pnoker.api.common.EnableFlagDTOEnum;
-import io.github.pnoker.api.common.RDTO;
+import io.github.pnoker.api.common.GrpcBase;
+import io.github.pnoker.api.common.GrpcR;
+import io.github.pnoker.center.auth.entity.bo.TenantBO;
 import io.github.pnoker.center.auth.service.TenantService;
-import io.github.pnoker.common.utils.BuilderUtil;
 import io.github.pnoker.common.enums.ResponseEnum;
-import io.github.pnoker.common.model.Tenant;
+import io.github.pnoker.common.utils.GrpcBuilderUtil;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -49,19 +48,19 @@ public class TenantApi extends TenantApiGrpc.TenantApiImplBase {
     private TenantService tenantService;
 
     @Override
-    public void selectByCode(CodeQuery request, StreamObserver<RTenantDTO> responseObserver) {
-        RTenantDTO.Builder builder = RTenantDTO.newBuilder();
-        RDTO.Builder rBuilder = RDTO.newBuilder();
-        Tenant select = tenantService.selectByCode(request.getCode());
+    public void selectByCode(GrpcCodeQuery request, StreamObserver<GrpcRTenantDTO> responseObserver) {
+        GrpcRTenantDTO.Builder builder = GrpcRTenantDTO.newBuilder();
+        GrpcR.Builder rBuilder = GrpcR.newBuilder();
+        TenantBO select = tenantService.selectByCode(request.getCode());
         if (ObjectUtil.isNull(select)) {
             rBuilder.setOk(false);
             rBuilder.setCode(ResponseEnum.NO_RESOURCE.getCode());
-            rBuilder.setMessage(ResponseEnum.NO_RESOURCE.getMessage());
+            rBuilder.setMessage(ResponseEnum.NO_RESOURCE.getText());
         } else {
             rBuilder.setOk(true);
             rBuilder.setCode(ResponseEnum.OK.getCode());
-            rBuilder.setMessage(ResponseEnum.OK.getMessage());
-            TenantDTO tenant = buildDTOByDO(select);
+            rBuilder.setMessage(ResponseEnum.OK.getText());
+            GrpcTenantDTO tenant = buildGrpcDTOByBO(select);
             builder.setData(tenant);
         }
 
@@ -74,16 +73,16 @@ public class TenantApi extends TenantApiGrpc.TenantApiImplBase {
     /**
      * DO to DTO
      *
-     * @param entityDO Tenant
+     * @param entityBO Tenant
      * @return TenantDTO
      */
-    private TenantDTO buildDTOByDO(Tenant entityDO) {
-        TenantDTO.Builder builder = TenantDTO.newBuilder();
-        BaseDTO baseDTO = BuilderUtil.buildBaseDTOByDO(entityDO);
+    private GrpcTenantDTO buildGrpcDTOByBO(TenantBO entityBO) {
+        GrpcTenantDTO.Builder builder = GrpcTenantDTO.newBuilder();
+        GrpcBase baseDTO = GrpcBuilderUtil.buildGrpcBaseByBO(entityBO);
         builder.setBase(baseDTO);
-        builder.setTenantName(entityDO.getTenantName());
-        builder.setTenantCode(entityDO.getTenantCode());
-        builder.setEnableFlag(EnableFlagDTOEnum.valueOf(entityDO.getEnableFlag().name()));
+        builder.setTenantName(entityBO.getTenantName());
+        builder.setTenantCode(entityBO.getTenantCode());
+        builder.setEnableFlag(entityBO.getEnableFlag().getIndex());
         return builder.build();
     }
 }

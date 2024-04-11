@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,20 @@ package io.github.pnoker.center.manager.controller;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.pnoker.center.manager.entity.query.DevicePageQuery;
+import io.github.pnoker.center.manager.entity.bo.DeviceBO;
+import io.github.pnoker.center.manager.entity.builder.DeviceBuilder;
+import io.github.pnoker.center.manager.entity.query.DeviceQuery;
+import io.github.pnoker.center.manager.entity.vo.DeviceVO;
 import io.github.pnoker.center.manager.service.DeviceService;
-import io.github.pnoker.common.constant.common.DefaultConstant;
-import io.github.pnoker.common.constant.common.RequestConstant;
-import io.github.pnoker.common.constant.service.ManagerServiceConstant;
+import io.github.pnoker.common.base.BaseController;
+import io.github.pnoker.common.constant.service.ManagerConstant;
 import io.github.pnoker.common.entity.R;
-import io.github.pnoker.common.model.Device;
-import io.github.pnoker.common.utils.RequestUtil;
-import io.github.pnoker.common.valid.Insert;
+import io.github.pnoker.common.enums.ResponseEnum;
+import io.github.pnoker.common.utils.ResponseUtil;
+import io.github.pnoker.common.valid.Add;
 import io.github.pnoker.common.valid.Update;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -40,7 +44,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -51,60 +54,67 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestController
-@RequestMapping(ManagerServiceConstant.DEVICE_URL_PREFIX)
-public class DeviceController {
+@Tag(name = "接口-设备")
+@RequestMapping(ManagerConstant.DEVICE_URL_PREFIX)
+public class DeviceController implements BaseController {
+
+    @Resource
+    private DeviceBuilder deviceBuilder;
 
     @Resource
     private DeviceService deviceService;
 
     /**
-     * 新增 Device
+     * 新增设备
      *
-     * @param device   Device
-     * @param tenantId 租户ID
-     * @return Device
+     * @param entityVO {@link DeviceVO}
+     * @return R of String
      */
     @PostMapping("/add")
-    public R<String> add(@Validated(Insert.class) @RequestBody Device device, @RequestHeader(value = RequestConstant.Header.X_AUTH_TENANT_ID, defaultValue = DefaultConstant.DEFAULT_ID) String tenantId) {
+    @Operation(summary = "新增-设备")
+    public R<String> add(@Validated(Add.class) @RequestBody DeviceVO entityVO) {
         try {
-            device.setTenantId(tenantId);
-            deviceService.add(device);
-            return R.ok();
+            DeviceBO entityBO = deviceBuilder.buildBOByVO(entityVO);
+            entityBO.setTenantId(getTenantId());
+            deviceService.save(entityBO);
+            return R.ok(ResponseEnum.ADD_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
 
     /**
-     * 根据 ID 删除 Device
+     * 根据 ID 删除设备
      *
-     * @param id 设备ID
-     * @return 是否删除
+     * @param id ID
+     * @return R of String
      */
     @PostMapping("/delete/{id}")
-    public R<String> delete(@NotNull @PathVariable(value = "id") String id) {
+    public R<String> delete(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            deviceService.delete(id);
-            return R.ok();
+            deviceService.remove(id);
+            return R.ok(ResponseEnum.DELETE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
 
     /**
-     * 修改 Device
+     * 更新设备
      *
-     * @param device   Device
-     * @param tenantId 租户ID
-     * @return Device
+     * @param entityVO {@link DeviceVO}
+     * @return R of String
      */
     @PostMapping("/update")
-    public R<String> update(@Validated(Update.class) @RequestBody Device device, @RequestHeader(value = RequestConstant.Header.X_AUTH_TENANT_ID, defaultValue = DefaultConstant.DEFAULT_ID) String tenantId) {
+    public R<String> update(@Validated(Update.class) @RequestBody DeviceVO entityVO) {
         try {
-            device.setTenantId(tenantId);
-            deviceService.update(device);
-            return R.ok();
+            DeviceBO entityBO = deviceBuilder.buildBOByVO(entityVO);
+            deviceService.update(entityBO);
+            return R.ok(ResponseEnum.UPDATE_SUCCESS);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
@@ -112,96 +122,110 @@ public class DeviceController {
     /**
      * 根据 ID 查询 Device
      *
-     * @param id 设备ID
-     * @return Device
+     * @param id ID
+     * @return DeviceVO {@link DeviceVO}
      */
     @GetMapping("/id/{id}")
-    public R<Device> selectById(@NotNull @PathVariable(value = "id") String id) {
+    public R<DeviceVO> selectById(@NotNull @PathVariable(value = "id") Long id) {
         try {
-            Device select = deviceService.selectById(id);
-            if (ObjectUtil.isNotNull(select)) {
-                return R.ok(select);
-            }
+            DeviceBO entityBO = deviceService.selectById(id);
+            DeviceVO entityVO = deviceBuilder.buildVOByBO(entityBO);
+            return R.ok(entityVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
      * 根据 ID 集合查询 Device
      *
-     * @param deviceIds 设备ID Set
-     * @return Map String:Device
+     * @param deviceIds 设备ID集
+     * @return Map(ID, DeviceVO)
      */
     @PostMapping("/ids")
-    public R<Map<String, Device>> selectByIds(@RequestBody Set<String> deviceIds) {
+    public R<Map<Long, DeviceVO>> selectByIds(@RequestBody Set<Long> deviceIds) {
         try {
-            List<Device> devices = deviceService.selectByIds(deviceIds);
-            Map<String, Device> deviceMap = devices.stream().collect(Collectors.toMap(Device::getId, Function.identity()));
+            List<DeviceBO> entityBOS = deviceService.selectByIds(deviceIds);
+            Map<Long, DeviceVO> deviceMap = entityBOS.stream().collect(Collectors.toMap(DeviceBO::getId, entityBO -> deviceBuilder.buildVOByBO(entityBO)));
             return R.ok(deviceMap);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
     }
 
     /**
-     * 模糊分页查询 Device
+     * 分页查询 Device
      *
-     * @param tenantId        租户ID
-     * @param devicePageQuery 设备和分页参数
-     * @return Page Of Device
+     * @param entityQuery 设备和分页参数
+     * @return R Of DeviceVO Page
      */
     @PostMapping("/list")
-    public R<Page<Device>> list(@RequestBody(required = false) DevicePageQuery devicePageQuery, @RequestHeader(value = RequestConstant.Header.X_AUTH_TENANT_ID, defaultValue = DefaultConstant.DEFAULT_ID) String tenantId) {
+    public R<Page<DeviceVO>> list(@RequestBody(required = false) DeviceQuery entityQuery) {
         try {
-            if (ObjectUtil.isEmpty(devicePageQuery)) {
-                devicePageQuery = new DevicePageQuery();
+            if (ObjectUtil.isEmpty(entityQuery)) {
+                entityQuery = new DeviceQuery();
             }
-            devicePageQuery.setTenantId(tenantId);
-            Page<Device> page = deviceService.list(devicePageQuery);
-            if (ObjectUtil.isNotNull(page)) {
-                return R.ok(page);
-            }
+            entityQuery.setTenantId(getTenantId());
+            Page<DeviceBO> entityPageBO = deviceService.selectByPage(entityQuery);
+            Page<DeviceVO> entityPageVO = deviceBuilder.buildVOPageByBOPage(entityPageBO);
+            return R.ok(entityPageVO);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
-        return R.fail();
     }
 
     /**
      * 导入 Device
      *
-     * @param device   Device
-     * @param tenantId 租户ID
-     * @return Device
+     * @param entityVO {@link DeviceVO}
+     * @return R of String
      */
     @PostMapping("/import")
-    public R<String> importDevice(@Validated(Update.class) Device device, @RequestParam("file") MultipartFile multipartFile, @RequestHeader(value = RequestConstant.Header.X_AUTH_TENANT_ID, defaultValue = DefaultConstant.DEFAULT_ID) String tenantId) {
+    public R<String> importDevice(@Validated(Update.class) DeviceVO entityVO, @RequestParam("file") MultipartFile multipartFile) {
         try {
-            device.setTenantId(tenantId);
-            deviceService.importDevice(device, multipartFile);
+            DeviceBO entityBO = deviceBuilder.buildBOByVO(entityVO);
+            deviceService.importDevice(entityBO, multipartFile);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return R.fail(e.getMessage());
         }
         return R.ok();
     }
 
     /**
-     * 导入 Device 模板
+     * 下载导入模板
      *
-     * @param device   Device
-     * @param tenantId 租户ID
-     * @return Device
+     * @param entityVO {@link DeviceVO}
+     * @return 模板文件流
      */
-    @PostMapping("/import/template")
-    public ResponseEntity<org.springframework.core.io.Resource> importTemplate(@Validated(Update.class) @RequestBody Device device, @RequestHeader(value = RequestConstant.Header.X_AUTH_TENANT_ID, defaultValue = DefaultConstant.DEFAULT_ID) String tenantId) {
+    @PostMapping("/export/import_template")
+    public ResponseEntity<org.springframework.core.io.Resource> importTemplate(@Validated(Update.class) @RequestBody DeviceVO entityVO) {
         try {
-            device.setTenantId(tenantId);
-            Path filePath = deviceService.generateImportTemplate(device);
-            return RequestUtil.responseFile(filePath);
+            DeviceBO entityBO = deviceBuilder.buildBOByVO(entityVO);
+            Path filePath = deviceService.generateImportTemplate(entityBO);
+            return ResponseUtil.responseFile(filePath);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    /**
+     * 驱动下设备数量
+     *
+     * @param driverId
+     * @return
+     */
+    @GetMapping("/getDeviceByDriverId/{driverId}")
+    public R<String> getDeviceByDriverId(@NotNull @PathVariable(value = "driverId") Long driverId) {
+        try {
+            List<DeviceBO> deviceBOS = deviceService.selectByDriverId(driverId);
+            return R.ok(String.valueOf(deviceBOS.size()));
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return R.fail(e.getMessage());
         }
     }
 

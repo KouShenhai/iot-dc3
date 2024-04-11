@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-present the original author or authors.
+ * Copyright 2016-present the IoT DC3 original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package io.github.pnoker.center.auth.api;
 
 
 import cn.hutool.core.util.ObjectUtil;
-import io.github.pnoker.api.center.auth.LoginQuery;
-import io.github.pnoker.api.center.auth.RTokenDTO;
+import io.github.pnoker.api.center.auth.GrpcLoginQuery;
+import io.github.pnoker.api.center.auth.GrpcRTokenDTO;
 import io.github.pnoker.api.center.auth.TokenApiGrpc;
-import io.github.pnoker.api.common.RDTO;
+import io.github.pnoker.api.common.GrpcR;
+import io.github.pnoker.center.auth.biz.TokenService;
 import io.github.pnoker.center.auth.entity.bean.TokenValid;
-import io.github.pnoker.center.auth.service.TokenService;
 import io.github.pnoker.common.enums.ResponseEnum;
 import io.github.pnoker.common.utils.TimeUtil;
 import io.grpc.stub.StreamObserver;
@@ -46,23 +46,23 @@ public class TokenApi extends TokenApiGrpc.TokenApiImplBase {
     private TokenService tokenService;
 
     @Override
-    public void checkTokenValid(LoginQuery request, StreamObserver<RTokenDTO> responseObserver) {
-        RTokenDTO.Builder builder = RTokenDTO.newBuilder();
-        RDTO.Builder rBuilder = RDTO.newBuilder();
-        TokenValid select = tokenService.checkTokenValid(request.getName(), request.getSalt(), request.getToken(), request.getTenant());
+    public void checkValid(GrpcLoginQuery request, StreamObserver<GrpcRTokenDTO> responseObserver) {
+        GrpcRTokenDTO.Builder builder = GrpcRTokenDTO.newBuilder();
+        GrpcR.Builder rBuilder = GrpcR.newBuilder();
+        TokenValid select = tokenService.checkValid(request.getName(), request.getSalt(), request.getToken(), request.getTenant());
         if (ObjectUtil.isNull(select)) {
             rBuilder.setOk(false);
             rBuilder.setCode(ResponseEnum.NO_RESOURCE.getCode());
-            rBuilder.setMessage(ResponseEnum.NO_RESOURCE.getMessage());
+            rBuilder.setMessage(ResponseEnum.NO_RESOURCE.getText());
         } else if (!select.isValid()) {
             rBuilder.setOk(false);
             rBuilder.setCode(ResponseEnum.TOKEN_INVALID.getCode());
-            rBuilder.setMessage(ResponseEnum.TOKEN_INVALID.getMessage());
+            rBuilder.setMessage(ResponseEnum.TOKEN_INVALID.getText());
         } else {
             String expireTime = TimeUtil.completeFormat(select.getExpireTime());
             rBuilder.setOk(true);
             rBuilder.setCode(ResponseEnum.OK.getCode());
-            rBuilder.setMessage(ResponseEnum.OK.getMessage());
+            rBuilder.setMessage(ResponseEnum.OK.getText());
             builder.setData(expireTime);
         }
 
